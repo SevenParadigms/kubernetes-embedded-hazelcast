@@ -3,12 +3,14 @@ package org.sevenparadigms.cache.hazelcast;
 import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@EnableConfigurationProperties
 @Configuration(proxyBeanMethods = false)
-public class HazelcastAutoconfiguration {
+public class HazelcastCacheConfiguration {
     @Bean
     public HazelcastInstance hazelcastInstance(HazelcastProperties properties) {
         Config config = new Config();

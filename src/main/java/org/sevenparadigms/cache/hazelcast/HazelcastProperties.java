@@ -4,9 +4,9 @@ import com.hazelcast.config.Config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 @Data
-@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "hazelcast")
 public class HazelcastProperties {
     private Boolean kubernetes = Boolean.FALSE;
