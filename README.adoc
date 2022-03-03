@@ -1,4 +1,4 @@
-# kubernetes-embedded-hazelcast
+= kubernetes-embedded-hazelcast
 
 Library provides kubernetes cluster for one service pods.
 
@@ -7,6 +7,15 @@ Library provides kubernetes cluster for one service pods.
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
+----
+
+Properties in application.yml:
+[source,yaml]
+----
+hazelcast:
+    kubernetes: false
+    timeoutMinutes: 5
+    serviceName: Goonies
 ----
