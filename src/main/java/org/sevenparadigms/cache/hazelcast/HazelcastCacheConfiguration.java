@@ -25,7 +25,9 @@ public class HazelcastCacheConfiguration {
         assert timeout != null;
         config.addMapConfig(new MapConfig("default")
                 .setTimeToLiveSeconds(Integer.parseInt(timeout) * 60)
-                .setEvictionConfig(new EvictionConfig().setEvictionPolicy(EvictionPolicy.LFU)));
+                .setEvictionConfig(new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.LFU)
+                        .setMaxSizePolicy(MaxSizePolicy.FREE_HEAP_SIZE)));
 
         if (Objects.equals(env.getProperty("kubernetes"), "true")) {
             var name = Objects.isNull(env.getProperty("serviceName")) ? "dev" : env.getProperty("serviceName");
