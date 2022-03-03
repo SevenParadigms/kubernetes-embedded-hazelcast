@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class HazelcastCacheManager implements CacheManager {
     private final HazelcastInstance hazelcastInstance;
-    private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>(16);
+    private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
     public HazelcastCacheManager(HazelcastInstance hazelcastInstance) {
         this.hazelcastInstance = hazelcastInstance;
