@@ -19,7 +19,6 @@ public class HazelcastCacheConfiguration {
         config.getJetConfig().setEnabled(true);
 
         config.setNetworkConfig(new NetworkConfig().setJoin(new JoinConfig()
-                .setTcpIpConfig(new TcpIpConfig().setEnabled(true))
                 .setMulticastConfig(new MulticastConfig().setEnabled(true))));
 
         var timeout = Objects.isNull(env.getProperty("timeoutMinutes")) ? "5" : env.getProperty("timeoutMinutes");
