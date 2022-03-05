@@ -19,7 +19,7 @@ public class HazelcastCacheConfiguration {
         config.getJetConfig().setEnabled(true);
 
         config.setNetworkConfig(new NetworkConfig().setJoin(new JoinConfig()
-                .setMulticastConfig(new MulticastConfig().setEnabled(true))));
+                .setMulticastConfig(new MulticastConfig().setEnabled(false))));
 
         var timeout = Objects.isNull(env.getProperty("timeoutMinutes")) ? "5" : env.getProperty("timeoutMinutes");
         assert timeout != null;
@@ -30,11 +30,12 @@ public class HazelcastCacheConfiguration {
                         .setMaxSizePolicy(MaxSizePolicy.FREE_HEAP_SIZE)));
 
         if (Objects.equals(env.getProperty("kubernetes"), "true")) {
-            var name = Objects.isNull(env.getProperty("serviceName")) ? "dev" : env.getProperty("serviceName");
+            var namespace = Objects.isNull(env.getProperty("namespace")) ? "default" : env.getProperty("namespace");
+            var serviceName = Objects.isNull(env.getProperty("serviceName")) ? "dev" : env.getProperty("serviceName");
             config.getNetworkConfig().getJoin().setKubernetesConfig(new KubernetesConfig()
                     .setEnabled(true)
-                    .setProperty("namespace", "default")
-                    .setProperty("service-name", name));
+                    .setProperty("namespace", namespace)
+                    .setProperty("service-name", serviceName));
         }
         return Hazelcast.newHazelcastInstance(config);
     }
