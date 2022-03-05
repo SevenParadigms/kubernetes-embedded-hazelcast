@@ -26,8 +26,9 @@ public class HazelcastCacheConfiguration {
         config.addMapConfig(new MapConfig("default")
                 .setTimeToLiveSeconds(Integer.parseInt(timeout) * 60)
                 .setEvictionConfig(new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LFU)
-                        .setMaxSizePolicy(MaxSizePolicy.FREE_HEAP_SIZE)));
+                        .setEvictionPolicy(EvictionPolicy.LRU)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
+                        .setSize(10000)));
 
         if (Objects.equals(env.getProperty("kubernetes"), "true")) {
             var namespace = Objects.isNull(env.getProperty("namespace")) ? "default" : env.getProperty("namespace");
