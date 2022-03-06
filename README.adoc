@@ -7,7 +7,7 @@ Library provides kubernetes cluster for one service pods.
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.0.4</version>
+  <version>1.0.5</version>
 </dependency>
 ----
 
@@ -20,6 +20,8 @@ hazelcast:
     namespace: default
     serviceName: Goonies
 ----
+
+Service name can also get from: `spring.application.name`
 
 Kubernetes yaml:
 [source,yaml]

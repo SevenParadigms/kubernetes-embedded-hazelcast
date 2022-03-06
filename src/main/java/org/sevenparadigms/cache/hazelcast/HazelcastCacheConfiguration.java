@@ -21,7 +21,7 @@ public class HazelcastCacheConfiguration {
         config.setNetworkConfig(new NetworkConfig().setJoin(new JoinConfig()
                 .setMulticastConfig(new MulticastConfig().setEnabled(false))));
 
-        var timeout = Objects.isNull(env.getProperty("timeoutMinutes")) ? "5" : env.getProperty("timeoutMinutes");
+        var timeout = Objects.isNull(env.getProperty("hazelcast.timeoutMinutes")) ? "5" : env.getProperty("hazelcast.timeoutMinutes");
         assert timeout != null;
         config.addMapConfig(new MapConfig("default")
                 .setTimeToLiveSeconds(Integer.parseInt(timeout) * 60)
@@ -30,9 +30,14 @@ public class HazelcastCacheConfiguration {
                         .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
                         .setSize(10000)));
 
-        if (Objects.equals(env.getProperty("kubernetes"), "true")) {
-            var namespace = Objects.isNull(env.getProperty("namespace")) ? "default" : env.getProperty("namespace");
-            var serviceName = Objects.isNull(env.getProperty("serviceName")) ? "dev" : env.getProperty("serviceName");
+        if (Objects.equals(env.getProperty("hazelcast.kubernetes"), "true")) {
+            var namespace = Objects.isNull(env.getProperty("hazelcast.namespace"))
+                    ? "default" : env.getProperty("hazelcast.namespace");
+            var applicationName = Objects.isNull(env.getProperty("spring.application.name"))
+                    ? "dev" : env.getProperty("spring.application.name");
+            var serviceName = Objects.isNull(env.getProperty("hazelcast.serviceName")) ?
+                    applicationName : env.getProperty("hazelcast.serviceName");
+
             config.getNetworkConfig().getJoin().setKubernetesConfig(new KubernetesConfig()
                     .setEnabled(true)
                     .setProperty("namespace", namespace)
