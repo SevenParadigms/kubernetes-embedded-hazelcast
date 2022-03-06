@@ -1,6 +1,6 @@
 = kubernetes-embedded-hazelcast
 
-Library provides kubernetes cluster for one service pods.
+Library provides closed kubernetes cluster for one service pods throw Spring Cache.
 
 [source,xml]
 ----
@@ -21,7 +21,7 @@ hazelcast:
     serviceName: Goonies
 ----
 
-Service name can also get from: `spring.application.name`
+Service name can also get from: `spring.application.name` if `hazelcast.serviceName` is empty. All properties have default values and do not require.
 
 Kubernetes yaml:
 [source,yaml]
