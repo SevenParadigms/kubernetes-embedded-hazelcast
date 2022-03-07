@@ -5,7 +5,7 @@
 
 	<groupId>io.github.sevenparadigms</groupId>
 	<artifactId>kubernetes-embedded-hazelcast</artifactId>
-	<version>1.0.5</version>
+	<version>1.0.6</version>
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>

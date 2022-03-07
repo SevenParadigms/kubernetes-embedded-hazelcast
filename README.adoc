@@ -7,7 +7,7 @@ Library provides closed kubernetes cluster for one service pods throw Spring Cac
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.0.5</version>
+  <version>1.0.6</version>
 </dependency>
 ----
 

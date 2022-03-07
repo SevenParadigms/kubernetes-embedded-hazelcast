@@ -21,7 +21,7 @@ public class HazelcastCacheConfiguration {
         config.setNetworkConfig(new NetworkConfig().setJoin(new JoinConfig()
                 .setMulticastConfig(new MulticastConfig().setEnabled(false))));
 
-        var timeout = Objects.isNull(env.getProperty("hazelcast.timeoutMinutes")) ? "5" : env.getProperty("hazelcast.timeoutMinutes");
+        var timeout = Objects.isNull(env.getProperty("hazelcast.timeoutMinutes")) ? "30" : env.getProperty("hazelcast.timeoutMinutes");
         assert timeout != null;
         config.addMapConfig(new MapConfig("default")
                 .setTimeToLiveSeconds(Integer.parseInt(timeout) * 60)
@@ -34,7 +34,7 @@ public class HazelcastCacheConfiguration {
             var namespace = Objects.isNull(env.getProperty("hazelcast.namespace"))
                     ? "default" : env.getProperty("hazelcast.namespace");
             var applicationName = Objects.isNull(env.getProperty("spring.application.name"))
-                    ? "dev" : env.getProperty("spring.application.name");
+                    ? "develop" : env.getProperty("spring.application.name");
             var serviceName = Objects.isNull(env.getProperty("hazelcast.serviceName")) ?
                     applicationName : env.getProperty("hazelcast.serviceName");
 
