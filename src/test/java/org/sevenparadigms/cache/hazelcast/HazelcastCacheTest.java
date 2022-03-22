@@ -7,16 +7,26 @@ import com.hazelcast.nio.serialization.DataSerializable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hamcrest.MatcherAssert;
-import org.junit.Test;
-import org.springframework.core.env.StandardEnvironment;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.r2dbc.expression.ExpressionParserCache;
 import org.springframework.expression.Expression;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.IOException;
 import java.util.Objects;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = HazelcastCacheConfiguration.class)
 public class HazelcastCacheTest {
+    @Autowired
+    CacheManager cacheManager;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -30,20 +40,17 @@ public class HazelcastCacheTest {
 
         @Override
         public void readData(ObjectDataInput in) throws IOException {
-            exp = ExpressionParserCache.INSTANCE.parseExpression(in.readString());
+            exp = ExpressionParserCache.INSTANCE.parseExpression(Objects.requireNonNull(in.readString()));
         }
     }
 
     @Test
     public void shouldInit() {
-        var instance = new HazelcastCacheConfiguration().hazelcastInstance(new StandardEnvironment());
-        var cache = new HazelcastCacheConfiguration().hazelcastCacheManager(instance);
-
         var model = new WithExpression(ExpressionParserCache.INSTANCE.parseExpression("a==5"));
-        Objects.requireNonNull(cache.getCache("test")).put("key", model);
+        Objects.requireNonNull(cacheManager.getCache("test")).put("key", model);
 
-        var test = Objects.requireNonNull(cache.getCache("test")).get("key", WithExpression.class);
-        MatcherAssert.assertThat("Must equals", Objects.requireNonNull(test).exp.getExpressionString().equals("a==5"));
+        var test = Objects.requireNonNull(cacheManager.getCache("test")).get("key", WithExpression.class);
+        assertThat("Must equals", Objects.requireNonNull(test).exp.getExpressionString().equals("a==5"));
 
         Hazelcast.shutdownAll();
     }
