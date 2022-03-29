@@ -5,7 +5,7 @@
 
 	<groupId>io.github.sevenparadigms</groupId>
 	<artifactId>kubernetes-embedded-hazelcast</artifactId>
-	<version>1.0.7</version>
+	<version>1.0.8</version>
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -62,10 +62,10 @@
 	</scm>
 
 	<properties>
-		<spring.core>5.3.16</spring.core>
-		<r2dbc.version>4.6.12</r2dbc.version>
+		<spring.core>5.3.17</spring.core>
+		<r2dbc.version>4.6.15</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
-		<reactor-bom.version>2020.0.16</reactor-bom.version>
+		<reactor-bom.version>2020.0.17</reactor-bom.version>
 
 		<java.version>11</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -78,7 +78,6 @@
 			<groupId>io.github.sevenparadigms</groupId>
 			<artifactId>spring-data-r2dbc-dsl-common</artifactId>
 			<version>${r2dbc.version}</version>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.hazelcast</groupId>
@@ -139,7 +138,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.1</version>
+				<version>3.10.0</version>
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>

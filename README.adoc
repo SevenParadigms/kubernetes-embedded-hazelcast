@@ -1,13 +1,13 @@
 = kubernetes-embedded-hazelcast
 
-Library provides closed kubernetes cluster for one service pods throw Spring Cache.
+The library provides closed in pods kubernetes cluster for one service with Spring Cache implementation.
 
 [source,xml]
 ----
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.0.7</version>
+  <version>1.0.8</version>
 </dependency>
 ----
 
