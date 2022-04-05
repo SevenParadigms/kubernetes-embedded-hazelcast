@@ -62,7 +62,7 @@ public class HazelcastCacheTest {
     @Test
     @Order(2)
     public void shouldExpireAndSizing() throws InterruptedException {
-        Thread.sleep(1000);
+        Thread.sleep(1010);
 
         var test = Objects.requireNonNull(cacheManager.getCache("test")).get("key", WithExpression.class);
         assertThat("Must null", test == null);
