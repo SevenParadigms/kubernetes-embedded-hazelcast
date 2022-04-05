@@ -7,7 +7,7 @@ The library provides closed in pods kubernetes cluster for one service with Spri
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.0.8</version>
+  <version>1.1.0</version>
 </dependency>
 ----
 
@@ -18,10 +18,19 @@ hazelcast:
     kubernetes: false
     timeoutMinutes: 5
     namespace: default
-    serviceName: Goonies
+    serviceName:
 ----
 
-Service name can also get from: `spring.application.name` if `hazelcast.serviceName` is empty. All properties have default values and do not require.
+Service name can also get from: `spring.application.name` if property `serviceName` is empty. All properties have default values and do not require.
+
+Each cache by name can have own properties:
+[source,yaml]
+----
+spring.cache:
+  <cache name>.expireAfterAccess: 500 # seconds
+  <cache name>.expireAfterWrite: 1000 # seconds
+  <cache name>.maximumSize: 10000
+----
 
 Kubernetes yaml:
 [source,yaml]
