@@ -7,7 +7,7 @@ The library provides closed in pods kubernetes cluster for one service with Spri
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ----
 
@@ -27,8 +27,8 @@ Each cache by name can have own properties:
 [source,yaml]
 ----
 spring.cache:
-  <cache name>.expireAfterAccess: 500 # seconds
-  <cache name>.expireAfterWrite: 1000 # seconds
+  <cache name>.expireAfterAccess: 500 # milliseconds
+  <cache name>.expireAfterWrite: 1000 # milliseconds
   <cache name>.maximumSize: 10000
 ----
 

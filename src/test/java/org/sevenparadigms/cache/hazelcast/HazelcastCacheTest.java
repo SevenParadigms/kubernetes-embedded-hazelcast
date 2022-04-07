@@ -26,7 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @ContextConfiguration(classes = HazelcastCacheConfiguration.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestPropertySource(properties = {
-        "spring.cache.test.expireAfterAccess=1",
+        "spring.cache.test.expireAfterAccess=100",
         "spring.cache.test.maximumSize=1"})
 public class HazelcastCacheTest {
     @Autowired
@@ -62,7 +62,7 @@ public class HazelcastCacheTest {
     @Test
     @Order(2)
     public void shouldExpireAndSizing() throws InterruptedException {
-        Thread.sleep(1010);
+        Thread.sleep(110);
 
         var test = Objects.requireNonNull(cacheManager.getCache("test")).get("key", WithExpression.class);
         assertThat("Must null", test == null);
@@ -71,7 +71,13 @@ public class HazelcastCacheTest {
     @Test
     @Order(3)
     public void shouldEvictAndShutdown() {
-        Objects.requireNonNull(cacheManager.getCache("test")).clear();
+        var cache = cacheManager.getCache("test");
+        assert cache != null;
+        cache.put("key", new WithExpression(ExpressionParserCache.INSTANCE.parseExpression("a==5")));
+        assertThat("Not null", Objects.requireNonNull(cache.get("key", WithExpression.class)).exp.getExpressionString().equals("a==5"));
+        cache.clear();
+        assertThat("Must null", Objects.requireNonNull(cache.get("key")).get() == null);
+
         Hazelcast.shutdownAll();
     }
 }

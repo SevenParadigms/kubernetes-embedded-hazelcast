@@ -11,15 +11,16 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.time.temporal.ChronoUnit.MILLIS;
 
 public class GuidedCache implements Cache {
     private final String cacheName;
     private final ConcurrentMap<Object, Object> cache;
-    private final Integer accessExpireSeconds;
-    private final Integer writeExpireSeconds;
-    private final Integer maximumSizeCount;
-    private final ConcurrentMap<Object, LocalDateTime> deltaStore = new ConcurrentHashMap<>();
+    private final Integer accessExpire;
+    private final Integer writeExpire;
+    private final Integer maxSize;
+    private final ConcurrentMap<Object, LocalDateTime> accessDelta = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Object, LocalDateTime> writeDelta = new ConcurrentHashMap<>();
 
     public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache) {
         this(cacheName, cache, Tuples.of("-1", "-1", "-1"));
@@ -28,9 +29,9 @@ public class GuidedCache implements Cache {
     public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache, Tuple3<String, String, String> properties) {
         this.cacheName = cacheName;
         this.cache = cache;
-        this.accessExpireSeconds = Integer.parseInt(properties.getT1());
-        this.writeExpireSeconds = Integer.parseInt(properties.getT2());
-        this.maximumSizeCount = Integer.parseInt(properties.getT3());
+        this.accessExpire = Integer.parseInt(properties.getT1());
+        this.writeExpire = Integer.parseInt(properties.getT2());
+        this.maxSize = Integer.parseInt(properties.getT3());
     }
 
     @Override
@@ -48,12 +49,9 @@ public class GuidedCache implements Cache {
     @Override
     @NonNull
     public ValueWrapper get(@NonNull final Object key) {
-        if (accessExpireSeconds > 0 || writeExpireSeconds > 0) {
-            var delta = deltaStore.get(key);
-            if (accessExpireSeconds > 0 && LocalDateTime.now().isAfter(delta.plus(accessExpireSeconds, SECONDS))
-                    || writeExpireSeconds > 0 && LocalDateTime.now().isAfter(delta.plus(writeExpireSeconds, SECONDS))) {
-                evict(key);
-            }
+        if (accessExpire > 0 && accessDelta.containsKey(key) && LocalDateTime.now().isAfter(accessDelta.get(key).plus(accessExpire, MILLIS))
+                || writeExpire > 0 && writeDelta.containsKey(key) && LocalDateTime.now().isAfter(writeDelta.get(key).plus(writeExpire, MILLIS))) {
+            evict(key);
         }
         return () -> this.cache.get(key);
     }
@@ -94,21 +92,24 @@ public class GuidedCache implements Cache {
 
     @Override
     public void put(@NonNull final Object key, @Nullable final Object value) {
-        if (maximumSizeCount > 0 && maximumSizeCount == cache.size()) {
+        evict(key);
+        this.cache.put(key, value);
+        if (accessExpire > 0) {
+            accessDelta.put(key, LocalDateTime.now());
+        }
+        if (writeExpire > 0) {
+            writeDelta.put(key, LocalDateTime.now());
+        }
+        if (maxSize == cache.size() + 1) {
             Object oldestKey = null;
-            LocalDateTime oldest = LocalDateTime.now();
-            for (var entry : deltaStore.entrySet()) {
-                if (entry.getValue().isBefore(oldest)) {
+            LocalDateTime oldestTime = LocalDateTime.now();
+            for (var entry : accessDelta.entrySet()) {
+                if (entry.getValue().isBefore(oldestTime)) {
                     oldestKey = entry.getKey();
                 }
             }
             assert oldestKey != null;
             evict(oldestKey);
-        }
-        evict(key);
-        this.cache.put(key, value);
-        if (accessExpireSeconds > 0 || writeExpireSeconds > 0) {
-            deltaStore.put(key, LocalDateTime.now());
         }
     }
 
@@ -124,14 +125,15 @@ public class GuidedCache implements Cache {
     @Override
     public void evict(@NonNull final Object key) {
         this.cache.remove(key);
-        this.deltaStore.remove(key);
+        this.accessDelta.remove(key);
+        this.writeDelta.remove(key);
     }
 
     @Override
     public boolean evictIfPresent(@NonNull final Object key) {
         var result = this.cache.remove(key) != null;
         if (result) {
-            this.deltaStore.remove(key);
+            evict(key);
         }
         return result;
     }
@@ -139,14 +141,14 @@ public class GuidedCache implements Cache {
     @Override
     public void clear() {
         this.cache.clear();
-        this.deltaStore.clear();
+        this.accessDelta.clear();
+        this.writeDelta.clear();
     }
 
     @Override
     public boolean invalidate() {
         boolean notEmpty = (this.cache.size() > 0);
-        this.cache.clear();
-        this.deltaStore.clear();
+        clear();
         return notEmpty;
     }
 }
