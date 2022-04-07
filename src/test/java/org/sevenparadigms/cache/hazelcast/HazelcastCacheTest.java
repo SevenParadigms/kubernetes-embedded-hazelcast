@@ -26,11 +26,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @ContextConfiguration(classes = HazelcastCacheConfiguration.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestPropertySource(properties = {
-        "spring.cache.test.expireAfterAccess=100",
+        "spring.cache.test.expireAfterAccess=200",
         "spring.cache.test.maximumSize=1"})
 public class HazelcastCacheTest {
     @Autowired
     CacheManager cacheManager;
+
+    WithExpression model = new WithExpression(ExpressionParserCache.INSTANCE.parseExpression("a==5"));
 
     @Data
     @NoArgsConstructor
@@ -52,31 +54,50 @@ public class HazelcastCacheTest {
     @Test
     @Order(1)
     public void shouldInit() {
-        var model = new WithExpression(ExpressionParserCache.INSTANCE.parseExpression("a==5"));
-        Objects.requireNonNull(cacheManager.getCache("test")).put("key", model);
+        var cache = cacheManager.getCache("test");
+        assert cache != null;
 
-        var test = Objects.requireNonNull(cacheManager.getCache("test")).get("key", WithExpression.class);
+        cache.put("key1", model);
+
+        var test = cache.get("key1", WithExpression.class);
         assertThat("Must equals", Objects.requireNonNull(test).exp.getExpressionString().equals("a==5"));
     }
 
     @Test
     @Order(2)
-    public void shouldExpireAndSizing() throws InterruptedException {
-        Thread.sleep(110);
+    public void shouldExpire() throws InterruptedException {
+        var cache = cacheManager.getCache("test");
+        assert cache != null;
 
-        var test = Objects.requireNonNull(cacheManager.getCache("test")).get("key", WithExpression.class);
-        assertThat("Must null", test == null);
+        assertThat("Must null", cache.get("key1", WithExpression.class) != null);
+
+        Thread.sleep(210);
+
+        assertThat("Must null", cache.get("key1", WithExpression.class) == null);
     }
 
     @Test
     @Order(3)
+    public void shouldMaxSizing() throws InterruptedException {
+        var cache = cacheManager.getCache("test");
+        assert cache != null;
+
+        cache.put("key2", model);
+        Thread.sleep(100);
+        cache.put("key3", model);
+
+        assertThat("Must null", cache.get("key2", WithExpression.class) == null);
+    }
+
+    @Test
+    @Order(4)
     public void shouldEvictAndShutdown() {
         var cache = cacheManager.getCache("test");
         assert cache != null;
-        cache.put("key", new WithExpression(ExpressionParserCache.INSTANCE.parseExpression("a==5")));
-        assertThat("Not null", Objects.requireNonNull(cache.get("key", WithExpression.class)).exp.getExpressionString().equals("a==5"));
+
+        assertThat("Not null", Objects.requireNonNull(cache.get("key3", WithExpression.class)).exp.getExpressionString().equals("a==5"));
         cache.clear();
-        assertThat("Must null", Objects.requireNonNull(cache.get("key")).get() == null);
+        assertThat("Must null", Objects.requireNonNull(cache.get("key3")).get() == null);
 
         Hazelcast.shutdownAll();
     }

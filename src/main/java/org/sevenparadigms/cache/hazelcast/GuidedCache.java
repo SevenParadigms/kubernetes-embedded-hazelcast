@@ -100,12 +100,13 @@ public class GuidedCache implements Cache {
         if (writeExpire > 0) {
             writeDelta.put(key, LocalDateTime.now());
         }
-        if (maxSize == cache.size() + 1) {
+        if (cache.size() > maxSize) {
             Object oldestKey = null;
             LocalDateTime oldestTime = LocalDateTime.now();
             for (var entry : accessDelta.entrySet()) {
-                if (entry.getValue().isBefore(oldestTime)) {
+                if (oldestTime.isAfter(entry.getValue())) {
                     oldestKey = entry.getKey();
+                    oldestTime = entry.getValue();
                 }
             }
             assert oldestKey != null;
