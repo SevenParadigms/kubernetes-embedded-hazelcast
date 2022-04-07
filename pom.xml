@@ -63,7 +63,7 @@
 
 	<properties>
 		<spring.core>5.3.17</spring.core>
-		<r2dbc.version>4.6.15</r2dbc.version>
+		<r2dbc.version>4.7.1</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
 		<reactor-bom.version>2020.0.17</reactor-bom.version>
 
