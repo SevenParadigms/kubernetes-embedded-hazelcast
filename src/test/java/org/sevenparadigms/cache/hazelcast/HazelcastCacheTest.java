@@ -1,13 +1,13 @@
 package org.sevenparadigms.cache.hazelcast;
 
 import com.hazelcast.core.Hazelcast;
-import com.hazelcast.nio.ObjectDataInput;
-import com.hazelcast.nio.ObjectDataOutput;
-import com.hazelcast.nio.serialization.DataSerializable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
@@ -17,7 +17,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.IOException;
 import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,18 +36,8 @@ public class HazelcastCacheTest {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    static class WithExpression implements DataSerializable {
+    static class WithExpression implements AnySerializable {
         Expression exp;
-
-        @Override
-        public void writeData(ObjectDataOutput out) throws IOException {
-            out.writeString(exp.getExpressionString());
-        }
-
-        @Override
-        public void readData(ObjectDataInput in) throws IOException {
-            exp = ExpressionParserCache.INSTANCE.parseExpression(Objects.requireNonNull(in.readString()));
-        }
     }
 
     @Test
@@ -78,12 +67,12 @@ public class HazelcastCacheTest {
 
     @Test
     @Order(3)
-    public void shouldMaxSizing() throws InterruptedException {
+    public void shouldMaxSizing() {
         var cache = cacheManager.getCache("test");
         assert cache != null;
 
         cache.put("key2", model);
-        Thread.sleep(100);
+
         cache.put("key3", model);
 
         assertThat("Must null", cache.get("key2", WithExpression.class) == null);

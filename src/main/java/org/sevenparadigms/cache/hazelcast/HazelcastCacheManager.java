@@ -16,9 +16,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HazelcastCacheManager implements CacheManager, ApplicationContextAware {
+    public static final String SERIALIZE_CACHE = "serialize";
     @Nullable private static ApplicationContext applicationContext = null;
     private final HazelcastInstance hazelcastInstance;
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
+
+    private static GuidedCache serializeCache = new GuidedCache(SERIALIZE_CACHE,
+            new ConcurrentHashMap<>(256), Tuples.of("1800000", "-1", "1000"));
 
     public HazelcastCacheManager(HazelcastInstance hazelcastInstance) {
         this.hazelcastInstance = hazelcastInstance;
@@ -50,5 +54,10 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
     @Override
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
         HazelcastCacheManager.applicationContext = applicationContext;
+    }
+
+    @NonNull
+    public static Cache getSerializeCache() {
+        return serializeCache;
     }
 }
