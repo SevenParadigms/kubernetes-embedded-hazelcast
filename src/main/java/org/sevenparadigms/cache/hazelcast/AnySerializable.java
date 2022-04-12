@@ -10,7 +10,7 @@ import org.springframework.data.r2dbc.support.JsonUtils;
 import java.io.IOException;
 import java.io.Serializable;
 
-interface AnySerializable extends DataSerializable, Serializable {
+public interface AnySerializable extends DataSerializable, Serializable {
     @Override
     default void writeData(ObjectDataOutput objectDataOutput) throws IOException {
         var input = JsonUtils.objectToJson(this).toString();
