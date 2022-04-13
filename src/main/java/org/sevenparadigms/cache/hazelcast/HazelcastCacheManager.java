@@ -21,8 +21,8 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
     private final HazelcastInstance hazelcastInstance;
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
-    private static GuidedCache serializeCache = new GuidedCache(SERIALIZE_CACHE,
-            new ConcurrentHashMap<>(256), Tuples.of("1800000", "-1", "1000"));
+    private static GuidedCache firstLevelCache = new GuidedCache(SERIALIZE_CACHE,
+            new ConcurrentHashMap<>(256), Tuples.of(1800000, -1, 1000));
 
     public HazelcastCacheManager(HazelcastInstance hazelcastInstance) {
         this.hazelcastInstance = hazelcastInstance;
@@ -40,11 +40,11 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
         if (!cacheMap.containsKey(name)) {
             assert applicationContext != null;
             var expireAfterAccess = applicationContext.getEnvironment()
-                    .getProperty("spring.cache." + name + ".expireAfterAccess", "-1");
+                    .getProperty("spring.cache." + name + ".expireAfterAccess", Integer.class, -1);
             var expireAfterWrite = applicationContext.getEnvironment()
-                    .getProperty("spring.cache." + name + ".expireAfterWrite", "-1");
+                    .getProperty("spring.cache." + name + ".expireAfterWrite", Integer.class, -1);
             var maximumSize = applicationContext.getEnvironment()
-                    .getProperty("spring.cache." + name + ".maximumSize", "-1");
+                    .getProperty("spring.cache." + name + ".maximumSize", Integer.class, -1);
             this.cacheMap.put(name, new GuidedCache(name, hazelcastInstance.getMap(name),
                     Tuples.of(expireAfterAccess, expireAfterWrite, maximumSize)));
         }
@@ -57,7 +57,7 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
     }
 
     @NonNull
-    public static Cache getSerializeCache() {
-        return serializeCache;
+    public static Cache getFirstLevelCache() {
+        return firstLevelCache;
     }
 }

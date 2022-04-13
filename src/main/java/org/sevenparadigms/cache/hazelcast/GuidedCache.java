@@ -23,15 +23,15 @@ public class GuidedCache implements Cache {
     private final ConcurrentMap<Object, LocalDateTime> writeDelta = new ConcurrentHashMap<>();
 
     public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache) {
-        this(cacheName, cache, Tuples.of("-1", "-1", "-1"));
+        this(cacheName, cache, Tuples.of(-1, -1, -1));
     }
 
-    public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache, Tuple3<String, String, String> properties) {
+    public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache, Tuple3<Integer, Integer, Integer> properties) {
         this.cacheName = cacheName;
         this.cache = cache;
-        this.accessExpire = Integer.parseInt(properties.getT1());
-        this.writeExpire = Integer.parseInt(properties.getT2());
-        this.maxSize = Integer.parseInt(properties.getT3());
+        this.accessExpire = properties.getT1();
+        this.writeExpire = properties.getT2();
+        this.maxSize = properties.getT3();
     }
 
     @Override

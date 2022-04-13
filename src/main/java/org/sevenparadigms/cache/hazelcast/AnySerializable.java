@@ -15,7 +15,7 @@ public interface AnySerializable extends DataSerializable, Serializable {
     default void writeData(ObjectDataOutput objectDataOutput) throws IOException {
         var input = JsonUtils.objectToJson(this).toString();
         var hash = this.getClass().getSimpleName() + MurmurHash2.hash64(input);
-        HazelcastCacheManager.getSerializeCache().put(hash, this);
+        HazelcastCacheManager.getFirstLevelCache().put(hash, this);
         objectDataOutput.writeString(input);
     }
 
@@ -23,10 +23,10 @@ public interface AnySerializable extends DataSerializable, Serializable {
     default void readData(ObjectDataInput objectDataInput) throws IOException {
         var input = objectDataInput.readString();
         var hash = this.getClass().getSimpleName() + MurmurHash2.hash64(input);
-        var value = HazelcastCacheManager.getSerializeCache().get(hash, this.getClass());
+        var value = HazelcastCacheManager.getFirstLevelCache().get(hash, this.getClass());
         if (value == null) {
             value = JsonUtils.stringToObject(input, this.getClass());
-            HazelcastCacheManager.getSerializeCache().put(hash, value);
+            HazelcastCacheManager.getFirstLevelCache().put(hash, value);
         }
         FastMethodInvoker.copy(value, this);
     }
