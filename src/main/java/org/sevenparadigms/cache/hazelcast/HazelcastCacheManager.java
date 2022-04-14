@@ -21,9 +21,6 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
     private final HazelcastInstance hazelcastInstance;
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
-    private static GuidedCache firstLevelCache = new GuidedCache(SERIALIZE_CACHE,
-            new ConcurrentHashMap<>(256), Tuples.of(1800000, -1, 1000));
-
     public HazelcastCacheManager(HazelcastInstance hazelcastInstance) {
         this.hazelcastInstance = hazelcastInstance;
     }
@@ -54,10 +51,5 @@ public class HazelcastCacheManager implements CacheManager, ApplicationContextAw
     @Override
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
         HazelcastCacheManager.applicationContext = applicationContext;
-    }
-
-    @NonNull
-    public static Cache getFirstLevelCache() {
-        return firstLevelCache;
     }
 }
