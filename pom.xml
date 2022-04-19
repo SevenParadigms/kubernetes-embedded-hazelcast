@@ -63,7 +63,7 @@
 
 	<properties>
 		<spring.core>5.3.17</spring.core>
-		<r2dbc.version>4.7.7</r2dbc.version>
+		<r2dbc.version>4.7.8</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
 		<reactor-bom.version>2020.0.17</reactor-bom.version>
 
@@ -112,7 +112,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
-			<version>5.3.17</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
