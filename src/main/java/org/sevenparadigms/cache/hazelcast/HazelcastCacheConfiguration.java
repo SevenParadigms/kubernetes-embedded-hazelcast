@@ -15,21 +15,13 @@ public class HazelcastCacheConfiguration {
     @Bean
     public HazelcastInstance hazelcastInstance(Environment env) {
         Config config = new Config();
-
+        System.setProperty("hazelcast.jcache.provider.type", "server");
+        var port = Objects.isNull(env.getProperty("hazelcast.port"))
+                ? 5702 : Integer.parseInt(Objects.requireNonNull(env.getProperty("hazelcast.port")));
         config.getJetConfig().setEnabled(true);
-
-        config.setNetworkConfig(new NetworkConfig().setJoin(new JoinConfig()
-                .setMulticastConfig(new MulticastConfig().setEnabled(false))));
-
-        var timeout = Objects.isNull(env.getProperty("hazelcast.timeoutMinutes")) ? "30" : env.getProperty("hazelcast.timeoutMinutes");
-        assert timeout != null;
-        config.addMapConfig(new MapConfig("default")
-                .setTimeToLiveSeconds(Integer.parseInt(timeout) * 60)
-                .setEvictionConfig(new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LRU)
-                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
-                        .setSize(10000)));
-
+        config.getNetworkConfig()
+                .setPort(port)
+                .setJoin(new JoinConfig().setMulticastConfig(new MulticastConfig().setEnabled(false)));
         if (Objects.equals(env.getProperty("hazelcast.kubernetes"), "true")) {
             var namespace = Objects.isNull(env.getProperty("hazelcast.namespace"))
                     ? "default" : env.getProperty("hazelcast.namespace");
@@ -37,7 +29,6 @@ public class HazelcastCacheConfiguration {
                     ? "develop" : env.getProperty("spring.application.name");
             var serviceName = Objects.isNull(env.getProperty("hazelcast.serviceName")) ?
                     applicationName : env.getProperty("hazelcast.serviceName");
-
             config.getNetworkConfig().getJoin().setKubernetesConfig(new KubernetesConfig()
                     .setEnabled(true)
                     .setProperty("namespace", namespace)
@@ -48,6 +39,6 @@ public class HazelcastCacheConfiguration {
 
     @Bean
     public CacheManager hazelcastCacheManager(HazelcastInstance hazelcastInstance) {
-        return new HazelcastCacheManager(hazelcastInstance);
+        return new HazelcastGuidedCacheManager(hazelcastInstance);
     }
 }

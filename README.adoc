@@ -1,13 +1,13 @@
 = kubernetes-embedded-hazelcast
 
-The library provides closed in pods kubernetes cluster for one service with Spring Cache implementation.
+The library provides closed in pods kubernetes cluster for one service with Spring Cache implementation of Hazelcast JCache.
 
 [source,xml]
 ----
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.1.7</version>
+  <version>1.1.8</version>
 </dependency>
 ----
 
@@ -15,13 +15,15 @@ Properties in application.yml:
 [source,yaml]
 ----
 hazelcast:
+    port: 5702
     kubernetes: false
-    timeoutMinutes: 5
+    timeoutMinutes: 30
+    maxSize: 1000
     namespace: default
     serviceName:
 ----
 
-Service name can also get from: `spring.application.name` if property `serviceName` is empty. All properties have default values and do not require.
+Service name can also get from: `spring.application.name` if property `serviceName` is empty. At each property show default value and do not require if expected.
 
 Each cache by name can have own properties:
 [source,yaml]
