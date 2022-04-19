@@ -42,12 +42,16 @@ public class HazelcastCacheTest {
 
     @Test
     @Order(1)
-    public void shouldInit() {
+    public void shouldInitAndEvictByKey() {
         var cache = cacheManager.getCache("test");
         assert cache != null;
 
-        cache.put("key1", model);
+        cache.put("key0", model);
+        assertThat("Must null", cache.get("key0", WithExpression.class) != null);
+        cache.evictIfPresent("key0");
+        assertThat("Must null", cache.get("key0", WithExpression.class) == null);
 
+        cache.put("key1", model);
         var test = cache.get("key1", WithExpression.class);
         assertThat("Must equals", Objects.requireNonNull(test).exp.getExpressionString().equals("a==5"));
     }
@@ -80,13 +84,15 @@ public class HazelcastCacheTest {
 
     @Test
     @Order(4)
-    public void shouldEvictAndShutdown() {
+    public void shouldEvictAllAndShutdown() {
         var cache = cacheManager.getCache("test");
         assert cache != null;
 
         assertThat("Not null", Objects.requireNonNull(cache.get("key3", WithExpression.class)).exp.getExpressionString().equals("a==5"));
+        cache.put("key4", model);
         cache.clear();
         assertThat("Must null", Objects.requireNonNull(cache.get("key3")).get() == null);
+        assertThat("Must null", Objects.requireNonNull(cache.get("key5")).get() == null);
 
         Hazelcast.shutdownAll();
     }

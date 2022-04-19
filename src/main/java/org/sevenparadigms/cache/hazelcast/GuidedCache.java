@@ -1,37 +1,45 @@
 package org.sevenparadigms.cache.hazelcast;
 
+import com.hazelcast.cache.ICache;
+import com.hazelcast.map.IMap;
 import org.springframework.cache.Cache;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import reactor.util.function.Tuple3;
-import reactor.util.function.Tuples;
 
+import javax.cache.expiry.AccessedExpiryPolicy;
+import javax.cache.expiry.CreatedExpiryPolicy;
+import javax.cache.expiry.Duration;
+import javax.cache.expiry.ExpiryPolicy;
 import java.time.LocalDateTime;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import static java.time.temporal.ChronoUnit.MILLIS;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GuidedCache implements Cache {
     private final String cacheName;
-    private final ConcurrentMap<Object, Object> cache;
+    private ICache<Object, Object> cache;
+    private final IMap<Object, LocalDateTime> maxDelta;
     private final Integer accessExpire;
     private final Integer writeExpire;
     private final Integer maxSize;
-    private final ConcurrentMap<Object, LocalDateTime> accessDelta = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Object, LocalDateTime> writeDelta = new ConcurrentHashMap<>();
 
-    public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache) {
-        this(cacheName, cache, Tuples.of(-1, -1, -1));
-    }
-
-    public GuidedCache(String cacheName, ConcurrentMap<Object, Object> cache, Tuple3<Integer, Integer, Integer> properties) {
+    public GuidedCache(String cacheName, ICache<Object, Object> cache, IMap<Object, LocalDateTime> maxDelta,
+                       Integer accessExpire, Integer writeExpire, Integer maxSize) {
         this.cacheName = cacheName;
         this.cache = cache;
-        this.accessExpire = properties.getT1();
-        this.writeExpire = properties.getT2();
-        this.maxSize = properties.getT3();
+        this.maxDelta = maxDelta;
+        this.accessExpire = accessExpire;
+        this.writeExpire = writeExpire;
+        this.maxSize = maxSize;
+    }
+
+    private ExpiryPolicy expiryPolicy() {
+        if (accessExpire > 0) {
+            return new AccessedExpiryPolicy(new Duration(TimeUnit.MILLISECONDS, accessExpire));
+        } else if (writeExpire > 0) {
+            return new CreatedExpiryPolicy(new Duration(TimeUnit.MILLISECONDS, writeExpire));
+        }
+        return null;
     }
 
     @Override
@@ -42,18 +50,14 @@ public class GuidedCache implements Cache {
 
     @Override
     @NonNull
-    public final ConcurrentMap<Object, Object> getNativeCache() {
+    public final ICache<Object, Object> getNativeCache() {
         return this.cache;
     }
 
     @Override
     @NonNull
     public ValueWrapper get(@NonNull final Object key) {
-        if (accessExpire > 0 && accessDelta.containsKey(key) && LocalDateTime.now().isAfter(accessDelta.get(key).plus(accessExpire, MILLIS))
-                || writeExpire > 0 && writeDelta.containsKey(key) && LocalDateTime.now().isAfter(writeDelta.get(key).plus(writeExpire, MILLIS))) {
-            evict(key);
-        }
-        return () -> this.cache.get(key);
+        return () -> cache.get(key, expiryPolicy());
     }
 
     @Override
@@ -93,24 +97,23 @@ public class GuidedCache implements Cache {
     @Override
     public void put(@NonNull final Object key, @Nullable final Object value) {
         evict(key);
-        this.cache.put(key, value);
-        if (accessExpire > 0) {
-            accessDelta.put(key, LocalDateTime.now());
-        }
-        if (writeExpire > 0) {
-            writeDelta.put(key, LocalDateTime.now());
-        }
-        if (maxSize > 0 && cache.size() > maxSize) {
-            Object oldestKey = null;
-            LocalDateTime oldestTime = LocalDateTime.now();
-            for (var entry : accessDelta.entrySet()) {
-                if (oldestTime.isAfter(entry.getValue())) {
-                    oldestKey = entry.getKey();
-                    oldestTime = entry.getValue();
-                }
+        cache.put(key, value, expiryPolicy());
+        maxDelta.put(key, LocalDateTime.now());
+        maxDelta.forEach((k, v) -> {
+            if (!cache.containsKey(k)) {
+                maxDelta.remove(k);
             }
-            assert oldestKey != null;
-            evict(oldestKey);
+        });
+        if (cache.size() > maxSize) {
+            final AtomicReference<Object> oldestKey = new AtomicReference<>();
+            final AtomicReference<LocalDateTime> oldestTime = new AtomicReference<>(LocalDateTime.now());
+            maxDelta.forEach((k, v) -> {
+                if (oldestTime.get().isAfter(v)) {
+                    oldestKey.set(k);
+                    oldestTime.set(v);
+                }
+            });
+            evict(oldestKey.get());
         }
     }
 
@@ -126,13 +129,12 @@ public class GuidedCache implements Cache {
     @Override
     public void evict(@NonNull final Object key) {
         this.cache.remove(key);
-        this.accessDelta.remove(key);
-        this.writeDelta.remove(key);
+        this.maxDelta.remove(key);
     }
 
     @Override
     public boolean evictIfPresent(@NonNull final Object key) {
-        var result = this.cache.remove(key) != null;
+        var result = this.cache.remove(key);
         if (result) {
             evict(key);
         }
@@ -142,8 +144,6 @@ public class GuidedCache implements Cache {
     @Override
     public void clear() {
         this.cache.clear();
-        this.accessDelta.clear();
-        this.writeDelta.clear();
     }
 
     @Override

@@ -5,7 +5,7 @@
 
 	<groupId>io.github.sevenparadigms</groupId>
 	<artifactId>kubernetes-embedded-hazelcast</artifactId>
-	<version>1.1.7</version>
+	<version>1.1.8</version>
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -63,7 +63,7 @@
 
 	<properties>
 		<spring.core>5.3.17</spring.core>
-		<r2dbc.version>4.7.7</r2dbc.version>
+		<r2dbc.version>4.7.8</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
 		<reactor-bom.version>2020.0.17</reactor-bom.version>
 
@@ -89,6 +89,12 @@
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-core</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.cache</groupId>
+			<artifactId>cache-api</artifactId>
+			<version>1.1.1</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
