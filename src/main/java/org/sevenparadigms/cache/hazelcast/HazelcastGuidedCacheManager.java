@@ -14,15 +14,21 @@ import org.springframework.lang.Nullable;
 
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
+import javax.cache.expiry.AccessedExpiryPolicy;
+import javax.cache.expiry.CreatedExpiryPolicy;
+import javax.cache.expiry.Duration;
+import javax.cache.expiry.ExpiryPolicy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 public class HazelcastGuidedCacheManager implements CacheManager, ApplicationContextAware {
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
-    private javax.cache.CacheManager cacheManager;
+    private final javax.cache.CacheManager cacheManager;
     private final HazelcastInstance hazelcastInstance;
 
     public HazelcastGuidedCacheManager(HazelcastInstance hazelcastInstance) {
@@ -52,9 +58,14 @@ public class HazelcastGuidedCacheManager implements CacheManager, ApplicationCon
             if (maximumSize < 0) {
                 maximumSize = Beans.getProperty("hazelcast.maxSize", Integer.class, 1000);
             }
+            ExpiryPolicy expiryPolicy = null;
+            if (expireAfterAccess > 0) {
+                expiryPolicy =  new AccessedExpiryPolicy(new Duration(MILLISECONDS, expireAfterAccess));
+            } else if (expireAfterWrite > 0) {
+                expiryPolicy = new CreatedExpiryPolicy(new Duration(MILLISECONDS, expireAfterWrite));
+            }
             javax.cache.Cache<Object, Object> cache = cacheManager.createCache(name, config);
-            this.cacheMap.put(name, new GuidedCache(name, cache.unwrap(ICache.class), hazelcastInstance.getMap(name),
-                    expireAfterAccess, expireAfterWrite, maximumSize));
+            this.cacheMap.put(name, new GuidedCache(name, cache.unwrap(ICache.class), hazelcastInstance.getMap(name), expiryPolicy, maximumSize));
         }
         return cacheMap.get(name);
     }

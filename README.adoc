@@ -31,8 +31,10 @@ Each cache by name can have own properties:
 spring.cache:
   <cache name>.expireAfterAccess: 500 # milliseconds
   <cache name>.expireAfterWrite: 1000 # milliseconds
-  <cache name>.maximumSize: 10000 # own realization for most performance
+  <cache name>.maximumSize: 10000
 ----
+
+Cache using the fast max policy resolving and at put a many entities in one time - the max policy resolver only for each 250 ms.
 
 Kubernetes yaml:
 [source,yaml]
