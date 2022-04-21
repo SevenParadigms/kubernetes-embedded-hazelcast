@@ -25,7 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @ContextConfiguration(classes = HazelcastCacheConfiguration.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestPropertySource(properties = {
-        "spring.cache.test.expireAfterAccess=200",
+        "spring.cache.test.expireAfterAccess=600",
         "spring.cache.test.maximumSize=1"})
 public class HazelcastCacheTest {
     @Autowired
@@ -64,22 +64,23 @@ public class HazelcastCacheTest {
 
         assertThat("Must null", cache.get("key1", WithExpression.class) != null);
 
-        Thread.sleep(210);
+        Thread.sleep(610);
 
         assertThat("Must null", cache.get("key1", WithExpression.class) == null);
     }
 
     @Test
     @Order(3)
-    public void shouldMaxSizing() {
+    public void shouldMaxSizing() throws InterruptedException {
         var cache = cacheManager.getCache("test");
         assert cache != null;
 
         cache.put("key2", model);
-
+        Thread.sleep(250); // max resolved after each 250 ms
         cache.put("key3", model);
 
         assertThat("Must null", cache.get("key2", WithExpression.class) == null);
+        assertThat("Must not null", cache.get("key3", WithExpression.class) != null);
     }
 
     @Test

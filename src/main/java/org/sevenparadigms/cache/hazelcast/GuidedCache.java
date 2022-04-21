@@ -2,6 +2,8 @@ package org.sevenparadigms.cache.hazelcast;
 
 import com.hazelcast.cache.ICache;
 import com.hazelcast.map.IMap;
+import lombok.SneakyThrows;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.springframework.cache.Cache;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -12,16 +14,23 @@ import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import java.time.LocalDateTime;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class GuidedCache implements Cache {
     private final String cacheName;
     private ICache<Object, Object> cache;
     private final IMap<Object, LocalDateTime> maxDelta;
-    private final Integer accessExpire;
-    private final Integer writeExpire;
-    private final Integer maxSize;
+    private final Integer accessExpire, writeExpire, maxSize;
+
+    private final AtomicReference<LocalDateTime> resetDelta = new AtomicReference<>(LocalDateTime.now());
+    private final AtomicInteger lastSize = new AtomicInteger();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public GuidedCache(String cacheName, ICache<Object, Object> cache, IMap<Object, LocalDateTime> maxDelta,
                        Integer accessExpire, Integer writeExpire, Integer maxSize) {
@@ -35,9 +44,9 @@ public class GuidedCache implements Cache {
 
     private ExpiryPolicy expiryPolicy() {
         if (accessExpire > 0) {
-            return new AccessedExpiryPolicy(new Duration(TimeUnit.MILLISECONDS, accessExpire));
+            return new AccessedExpiryPolicy(new Duration(MILLISECONDS, accessExpire));
         } else if (writeExpire > 0) {
-            return new CreatedExpiryPolicy(new Duration(TimeUnit.MILLISECONDS, writeExpire));
+            return new CreatedExpiryPolicy(new Duration(MILLISECONDS, writeExpire));
         }
         return null;
     }
@@ -95,26 +104,63 @@ public class GuidedCache implements Cache {
     }
 
     @Override
+    @SneakyThrows
     public void put(@NonNull final Object key, @Nullable final Object value) {
         evict(key);
         cache.put(key, value, expiryPolicy());
         maxDelta.put(key, LocalDateTime.now());
-        maxDelta.forEach((k, v) -> {
-            if (!cache.containsKey(k)) {
-                maxDelta.remove(k);
-            }
-        });
-        if (cache.size() > maxSize) {
-            final AtomicReference<Object> oldestKey = new AtomicReference<>();
-            final AtomicReference<LocalDateTime> oldestTime = new AtomicReference<>(LocalDateTime.now());
-            maxDelta.forEach((k, v) -> {
-                if (oldestTime.get().isAfter(v)) {
-                    oldestKey.set(k);
-                    oldestTime.set(v);
+        if (!maxDelta.isLocked(GuidedCache.class.getName())) {
+            if (LocalDateTime.now().isAfter(resetDelta.get().plus(500, MILLIS))) {
+                executorService.submit(() -> {
+                    try {
+                        maxDelta.lock(GuidedCache.class.getName(), 250, MILLISECONDS);
+                        maxDelta.forEach((k, v) -> {
+                            if (!cache.containsKey(k)) maxDelta.remove(k);
+                        });
+                        if (lastSize.get() > maxSize) {
+                            resolveMax(lastSize.get()).run();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        maxDelta.forceUnlock(GuidedCache.class.getName());
+                    }
+                });
+                resetDelta.set(LocalDateTime.now());
+            } else {
+                if (lastSize.incrementAndGet() > maxSize) {
+                    if (lastSize.get() < 250) resolveMax(lastSize.get()).run();
+                    else if (LocalDateTime.now().isAfter(resetDelta.get().plus(250, MILLIS))) {
+                        executorService.submit(resolveMax(lastSize.get()));
+                        resetDelta.set(LocalDateTime.now());
+                    }
                 }
-            });
-            evict(oldestKey.get());
+            }
+        } else {
+            lastSize.incrementAndGet();
+            resetDelta.set(LocalDateTime.now());
         }
+    }
+
+    private Runnable resolveMax(int current) {
+        return () -> {
+            try {
+                maxDelta.lock(GuidedCache.class.getName(), 250, MILLISECONDS);
+                CircularFifoQueue<Object> evictedKeys = new CircularFifoQueue<>(current - maxSize);
+                final AtomicReference<LocalDateTime> oldestTime = new AtomicReference<>(LocalDateTime.now());
+                maxDelta.forEach((k, v) -> {
+                    if (oldestTime.get().isAfter(v)) {
+                        evictedKeys.add(k);
+                        oldestTime.set(v);
+                    }
+                });
+                evictedKeys.forEach(this::evict);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                maxDelta.forceUnlock(GuidedCache.class.getName());
+            }
+        };
     }
 
     @Override
@@ -128,21 +174,22 @@ public class GuidedCache implements Cache {
 
     @Override
     public void evict(@NonNull final Object key) {
-        this.cache.remove(key);
-        this.maxDelta.remove(key);
+        evictIfPresent(key);
     }
 
     @Override
     public boolean evictIfPresent(@NonNull final Object key) {
         var result = this.cache.remove(key);
         if (result) {
-            evict(key);
+            this.lastSize.decrementAndGet();
+            this.maxDelta.remove(key);
         }
         return result;
     }
 
     @Override
     public void clear() {
+        this.lastSize.set(0);
         this.cache.clear();
     }
 
