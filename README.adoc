@@ -29,9 +29,9 @@ Each cache by name can have own properties:
 [source,yaml]
 ----
 spring.cache:
-  <cache name>.expireAfterAccess: 500 # milliseconds, use hazelcast feature
-  <cache name>.expireAfterWrite: 1000 # milliseconds, use hazelcast feature
-  <cache name>.maximumSize: 10000 # own realization, nothing in hazelcast
+  <cache name>.expireAfterAccess: 500 # milliseconds
+  <cache name>.expireAfterWrite: 1000 # milliseconds
+  <cache name>.maximumSize: 10000 # own realization for most performance
 ----
 
 Kubernetes yaml:

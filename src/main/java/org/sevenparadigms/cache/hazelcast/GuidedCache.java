@@ -27,6 +27,7 @@ public class GuidedCache implements Cache {
     private ICache<Object, Object> cache;
     private final IMap<Object, LocalDateTime> maxDelta;
     private final Integer accessExpire, writeExpire, maxSize;
+    private final String cacheLock;
 
     private final AtomicReference<LocalDateTime> resetDelta = new AtomicReference<>(LocalDateTime.now());
     private final AtomicInteger lastSize = new AtomicInteger();
@@ -40,6 +41,7 @@ public class GuidedCache implements Cache {
         this.accessExpire = accessExpire;
         this.writeExpire = writeExpire;
         this.maxSize = maxSize;
+        this.cacheLock = getClass().getName() + "_" + cacheName;
     }
 
     private ExpiryPolicy expiryPolicy() {
@@ -109,11 +111,11 @@ public class GuidedCache implements Cache {
         evict(key);
         cache.put(key, value, expiryPolicy());
         maxDelta.put(key, LocalDateTime.now());
-        if (!maxDelta.isLocked(GuidedCache.class.getName())) {
+        if (!maxDelta.isLocked(cacheLock)) {
             if (LocalDateTime.now().isAfter(resetDelta.get().plus(500, MILLIS))) {
                 executorService.submit(() -> {
                     try {
-                        maxDelta.lock(GuidedCache.class.getName(), 250, MILLISECONDS);
+                        maxDelta.lock(cacheLock, 250, MILLISECONDS);
                         maxDelta.forEach((k, v) -> {
                             if (!cache.containsKey(k)) maxDelta.remove(k);
                         });
@@ -123,7 +125,7 @@ public class GuidedCache implements Cache {
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
-                        maxDelta.forceUnlock(GuidedCache.class.getName());
+                        maxDelta.forceUnlock(cacheLock);
                     }
                 });
                 resetDelta.set(LocalDateTime.now());
@@ -145,7 +147,7 @@ public class GuidedCache implements Cache {
     private Runnable resolveMax(int current) {
         return () -> {
             try {
-                maxDelta.lock(GuidedCache.class.getName(), 250, MILLISECONDS);
+                maxDelta.lock(cacheLock, 250, MILLISECONDS);
                 CircularFifoQueue<Object> evictedKeys = new CircularFifoQueue<>(current - maxSize);
                 final AtomicReference<LocalDateTime> oldestTime = new AtomicReference<>(LocalDateTime.now());
                 maxDelta.forEach((k, v) -> {
@@ -158,7 +160,7 @@ public class GuidedCache implements Cache {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                maxDelta.forceUnlock(GuidedCache.class.getName());
+                maxDelta.forceUnlock(cacheLock);
             }
         };
     }
