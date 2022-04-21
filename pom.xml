@@ -5,7 +5,7 @@
 
 	<groupId>io.github.sevenparadigms</groupId>
 	<artifactId>kubernetes-embedded-hazelcast</artifactId>
-	<version>1.2.0</version>
+	<version>1.1.9</version>
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -62,10 +62,10 @@
 	</scm>
 
 	<properties>
-		<spring.core>5.3.17</spring.core>
+		<spring.core>5.3.19</spring.core>
 		<r2dbc.version>4.7.8</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
-		<reactor-bom.version>2020.0.17</reactor-bom.version>
+		<reactor-bom.version>2020.0.18</reactor-bom.version>
 
 		<java.version>11</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -106,7 +106,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.22</version>
+			<version>1.18.24</version>
 			<scope>provided</scope>
 		</dependency>
         <dependency>
@@ -124,7 +124,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
-			<version>5.3.17</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
