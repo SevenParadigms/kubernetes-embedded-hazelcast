@@ -10,6 +10,9 @@ import org.springframework.lang.Nullable;
 
 import javax.cache.expiry.ExpiryPolicy;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,11 +21,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.springframework.data.r2dbc.repository.query.Dsl.COLON;
 
 public class GuidedCache implements Cache {
     private final String cacheName;
     private final ICache<Object, Object> cache;
-    private final IMap<Object, LocalDateTime> maxDelta;
+    private final IMap<String, LocalDateTime> maxDelta;
     private final String cacheLock;
     private final ExpiryPolicy expiryPolicy;
     private final Integer maxSize;
@@ -31,12 +35,12 @@ public class GuidedCache implements Cache {
     private final AtomicInteger lastSize = new AtomicInteger();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    public GuidedCache(String cacheName, ICache<Object, Object> cache, IMap<Object, LocalDateTime> maxDelta,
+    public GuidedCache(String cacheName, ICache<Object, Object> cache, IMap<String, LocalDateTime> maxDelta,
                        ExpiryPolicy expiryPolicy, Integer maxSize) {
         this.cacheName = cacheName;
         this.cache = cache;
         this.maxDelta = maxDelta;
-        this.cacheLock = getClass().getName() + "_" + cacheName;
+        this.cacheLock = getClass().getName() + COLON + cacheName;
         this.expiryPolicy = expiryPolicy;
         this.maxSize = maxSize;
     }
@@ -98,30 +102,30 @@ public class GuidedCache implements Cache {
     public void put(@NonNull final Object key, @Nullable final Object value) {
         evict(key);
         cache.put(key, value, expiryPolicy);
-        maxDelta.put(key, LocalDateTime.now());
+        maxDelta.put(key.toString(), LocalDateTime.now());
         if (!maxDelta.isLocked(cacheLock)) {
             if (LocalDateTime.now().isAfter(resetDelta.get().plus(500, MILLIS))) {
                 executorService.submit(() -> {
-                    try {
-                        maxDelta.lock(cacheLock, 250, MILLISECONDS);
-                        maxDelta.forEach((k, v) -> {
-                            if (!cache.containsKey(k)) maxDelta.remove(k);
-                        });
-                        if (lastSize.get() > maxSize) {
-                            resolveMax(lastSize.get()).run();
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    } finally {
+                    maxDelta.lock(cacheLock, 250, MILLISECONDS);
+                    Set<Object> removeKeys = new HashSet<>();
+                    maxDelta.forEach((k, v) -> {
+                        if (!Objects.equals(k, cacheLock) && !cache.containsKey(k)) removeKeys.add(k);
+                    });
+                    removeKeys.forEach(maxDelta::remove);
+                    lastSize.set(cache.size());
+                    if (lastSize.get() > maxSize) {
+                        resolveMax(false).run();
+                    } else {
                         maxDelta.forceUnlock(cacheLock);
                     }
                 });
                 resetDelta.set(LocalDateTime.now());
             } else {
                 if (lastSize.incrementAndGet() > maxSize) {
-                    if (lastSize.get() < 250) resolveMax(lastSize.get()).run();
-                    else if (LocalDateTime.now().isAfter(resetDelta.get().plus(250, MILLIS))) {
-                        executorService.submit(resolveMax(lastSize.get()));
+                    if (lastSize.get() < 250) {
+                        resolveMax(true).run();
+                    } else if (LocalDateTime.now().isAfter(resetDelta.get().plus(250, MILLIS))) {
+                        executorService.submit(resolveMax(true));
                         resetDelta.set(LocalDateTime.now());
                     }
                 }
@@ -132,11 +136,11 @@ public class GuidedCache implements Cache {
         }
     }
 
-    private Runnable resolveMax(int current) {
+    private Runnable resolveMax(boolean isLocking) {
         return () -> {
             try {
-                maxDelta.lock(cacheLock, 250, MILLISECONDS);
-                CircularFifoQueue<Object> evictedKeys = new CircularFifoQueue<>(current - maxSize);
+                if (isLocking) maxDelta.lock(cacheLock, 250, MILLISECONDS);
+                CircularFifoQueue<Object> evictedKeys = new CircularFifoQueue<>(lastSize.get() - maxSize);
                 final AtomicReference<LocalDateTime> oldestTime = new AtomicReference<>(LocalDateTime.now());
                 maxDelta.forEach((k, v) -> {
                     if (oldestTime.get().isAfter(v)) {
@@ -145,8 +149,6 @@ public class GuidedCache implements Cache {
                     }
                 });
                 evictedKeys.forEach(this::evict);
-            } catch (Exception e) {
-                e.printStackTrace();
             } finally {
                 maxDelta.forceUnlock(cacheLock);
             }

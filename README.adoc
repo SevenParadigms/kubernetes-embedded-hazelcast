@@ -7,7 +7,7 @@ The library provides closed in pods kubernetes cluster for one service with Spri
 <dependency>
   <groupId>io.github.sevenparadigms</groupId>
   <artifactId>kubernetes-embedded-hazelcast</artifactId>
-  <version>1.1.9</version>
+  <version>1.2.0</version>
 </dependency>
 ----
 
