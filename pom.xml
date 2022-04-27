@@ -63,7 +63,7 @@
 
 	<properties>
 		<spring.core>5.3.19</spring.core>
-		<r2dbc.version>4.8.1</r2dbc.version>
+		<r2dbc.version>4.8.2</r2dbc.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
 		<reactor-bom.version>2020.0.18</reactor-bom.version>
 
@@ -100,7 +100,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
-			<version>4.1</version>
+			<version>4.4</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
